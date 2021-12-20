@@ -47,9 +47,12 @@ namespace Graffle.FlowEventProcessor
             var flowClientFactory = new FlowClientFactory(nodeName);
             var flowClient = flowClientFactory.CreateFlowClient();
             Console.WriteLine($"Setup Flow Client Complete");
+            var httpClient = new HttpClient();
 
             Console.WriteLine($"Begin Indexing...");
             ulong lastBlockHeight = 0;
+            //first scan check prevents an infinite loop issue when starting the emulator at block 0
+            var firstScan = true;
             do
             {
                 try
@@ -72,9 +75,10 @@ namespace Graffle.FlowEventProcessor
                         );
 
                     var currentBlockHeight = latestBlock.Height;
-                    if (lastBlockHeight == 0)
+                    if (lastBlockHeight == 0 && firstScan)
                     {
                         lastBlockHeight = currentBlockHeight;
+                        firstScan = false;
                     }
                     else if (lastBlockHeight == currentBlockHeight)
                     {
@@ -135,12 +139,10 @@ namespace Graffle.FlowEventProcessor
                                 //Send webhook
                                 var jsonMesage = System.Text.Json.JsonSerializer.Serialize(flowEvent);
                                 using (var content = new StringContent(jsonMesage)) {
-                                    using (var client = new HttpClient()) {
-                                        if(verbose) {
-                                            Console.WriteLine($"Posting event to {webhookUrl}: {Environment.NewLine}     {jsonMesage}");
-                                        }
-                                        await client.PostAsync(webhookUrl, content);
+                                    if(verbose) {
+                                        Console.WriteLine($"Posting event to {webhookUrl}: {Environment.NewLine}     {jsonMesage}");
                                     }
+                                    await httpClient.PostAsync(webhookUrl, content);
                                 }
                             }
                         }

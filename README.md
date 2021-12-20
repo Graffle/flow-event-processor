@@ -2,7 +2,7 @@
 A processor to monitor events in the flow blockchain
 
 Configuration:
-- FlowNode: MainNet or TestNet
+- FlowNode: MainNet, TestNet, or Emulator. Note: Emulator support is currently limited to running from VS Code.
 - MaximumBlockScanRange: Block size to scan when catching up after falling behind, should normally be set to 200.
 - WebhookUrl: Your url which will receive POST requests containing your processed events.
 - EventId: Flow event Id of the event type you want to process. ex: A.c1e4f4f4c4257510.Market.MomentPurchased
@@ -33,11 +33,10 @@ EVENTID=A.c1e4f4f4c4257510.Market.MomentPurchased
 VERBOSE=true
 ```
 
-Open a terminal window in the root of your repository and run either:
+Open a terminal window in the root of your repository and run one of the following:
 ```
  docker-compose --env-file .\.env.local up test_net_graffle_flow_event_processor
 ```
-or
 ```
  docker-compose --env-file .\.env.local up main_net_graffle_flow_event_processor
 ```

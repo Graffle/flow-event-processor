@@ -1,14 +1,16 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:5.0-alpine AS build
 WORKDIR /app
 
-COPY ./Graffle.FlowEventProcessor/Graffle.FlowEventProcessor.csproj Graffle.FlowEventProcessor/
+#copy csproj
+COPY Graffle.FlowEventProcessor.csproj ./
+RUN dotnet restore
 
-WORKDIR /app/Graffle.FlowEventProcessor
-RUN dotnet restore Graffle.FlowEventProcessor.csproj
-COPY ./Graffle.FlowEventProcessor .
+# copy everything else and build
+COPY . ./
 RUN dotnet publish -c Release -o out
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:5.0
-WORKDIR /app/Graffle.FlowEventProcessor
-COPY --from=build /app/Graffle.FlowEventProcessor/out ./
+
+# build runtime image, use buster-slim as alpine is missing some required libraries for grpc
+FROM mcr.microsoft.com/dotnet/aspnet:5.0-buster-slim
+WORKDIR /app
+COPY --from=build /app/out ./
 ENTRYPOINT ["dotnet", "Graffle.FlowEventProcessor.dll"]
