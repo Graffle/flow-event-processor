@@ -31,11 +31,24 @@ namespace Graffle.FlowEventProcessor
             .Build();
 
             Console.WriteLine($"Loaded Settings Files.");
-            var nodeName = config.GetValue<string>("FlowNode");
+
+            var nodeName = config.GetValue<string>("FlowNode") ?? "MainNet";
             var maximumBlockScanRange = config.GetValue<ulong>("MaximumBlockScanRange");
             var webhookUrl = config.GetValue<string>("WebhookUrl");
             var eventId = config.GetValue<string>("EventId");
-            var verbose = config.GetValue<bool>("Verbose");
+            var verbose = config.GetValue<bool?>("Verbose") ?? false;
+
+            if(string.IsNullOrWhiteSpace(webhookUrl)) {
+                throw new Exception("Specify WebhookUrl environment variable.");
+            }
+
+            if(string.IsNullOrWhiteSpace(eventId)) {
+                throw new Exception("Specify EventId environment variable.");
+            }
+            
+            if(maximumBlockScanRange == 0){
+                maximumBlockScanRange = 200;
+            }
 
             Console.WriteLine($"Target Node:      {nodeName}");
             Console.WriteLine($"Block Scan Range: {maximumBlockScanRange}");
