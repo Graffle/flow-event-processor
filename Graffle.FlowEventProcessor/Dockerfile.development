@@ -11,10 +11,8 @@ RUN dotnet publish -c Debug -o out
 
 # build runtime image, use buster-slim as alpine is missing some required libraries for grpc
 FROM mcr.microsoft.com/dotnet/aspnet:5.0-buster-slim
-ARG webhookurl
-ARG eventid
-ENV WebhookUrl=${webhookurl}
-ENV EventId=${eventid}
+ENV WebhookUrl=${WebhookUrl}
+ENV EventId=${EventId}
 ENV Verbose=False
 WORKDIR /app
 COPY --from=build /app/out ./
