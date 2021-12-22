@@ -1,0 +1,31 @@
+version: '3'
+services:
+  test_net_graffle_flow_event_processor:
+    build:
+      context: ./Graffle.FlowEventProcessor
+      dockerfile: ./Dockerfile.development
+    environment:
+      - ASPNETCORE_ENVIRONMENT=local
+      - FlowNode=TestNet
+      - MaximumBlockScanRange=200
+      - WebhookUrl=${WEBHOOKURL}
+      - EventId=${EVENTID}
+      - Verbose=${VERBOSE}
+    image: 'graffle/flow_event_processor:dev'
+    volumes:
+      - ./Graffle.FlowEventProcessor/bin/Debug/net5.0:/app
+
+  main_net_graffle_flow_event_processor:
+    build:
+      context: ./Graffle.FlowEventProcessor
+      dockerfile: ./Dockerfile.development
+    environment:
+      - ASPNETCORE_ENVIRONMENT=local
+      - FlowNode=MainNet
+      - MaximumBlockScanRange=200
+      - WebhookUrl=${WEBHOOKURL}
+      - EventId=${EVENTID}
+      - Verbose=${VERBOSE}
+    image: 'graffle/flow_event_processor:dev'
+    volumes:
+      - ./Graffle.FlowEventProcessor/bin/Debug/net5.0:/app
