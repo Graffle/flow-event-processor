@@ -32,11 +32,15 @@ namespace Graffle.FlowEventProcessor
 
             Console.WriteLine($"Loaded Settings Files.");
 
-            var nodeName = config.GetValue<string>("FlowNode") ?? "MainNet";
-            var maximumBlockScanRange = config.GetValue<ulong>("MaximumBlockScanRange");
+            var nodeName = config.GetValue<string>("FlowNode");
+            var maximumBlockScanRangeEnvVariable = config.GetValue<int?>("MaximumBlockScanRange");
             var webhookUrl = config.GetValue<string>("WebhookUrl");
             var eventId = config.GetValue<string>("EventId");
             var verbose = config.GetValue<bool?>("Verbose") ?? false;
+
+            if(string.IsNullOrWhiteSpace(nodeName) || (nodeName != "MainNet" && nodeName != "TestNet")) {
+                throw new Exception("Specify FlowNode environment variable of either MainNet or TestNet.");
+            }
 
             if(string.IsNullOrWhiteSpace(webhookUrl)) {
                 throw new Exception("Specify WebhookUrl environment variable.");
@@ -46,9 +50,11 @@ namespace Graffle.FlowEventProcessor
                 throw new Exception("Specify EventId environment variable.");
             }
             
-            if(maximumBlockScanRange == 0){
-                maximumBlockScanRange = 200;
+            if(!maximumBlockScanRangeEnvVariable.HasValue || maximumBlockScanRangeEnvVariable <= 0 || maximumBlockScanRangeEnvVariable > 250){
+                throw new Exception("Specify MaximumBlockScanRange environment variable between 1 and 250.");
             }
+
+            var maximumBlockScanRange = (ulong)maximumBlockScanRangeEnvVariable.Value;
 
             Console.WriteLine($"Target Node:      {nodeName}");
             Console.WriteLine($"Block Scan Range: {maximumBlockScanRange}");
@@ -155,7 +161,23 @@ namespace Graffle.FlowEventProcessor
                                     if(verbose) {
                                         Console.WriteLine($"Posting event to {webhookUrl}: {Environment.NewLine}     {jsonMesage}");
                                     }
-                                    await httpClient.PostAsync(webhookUrl, content);
+
+                                    var webhookRetryPolicy = Policy
+                                    .Handle<Exception>()
+                                    .WaitAndRetryAsync(new[]
+                                        {
+                                            TimeSpan.FromMilliseconds(250),
+                                            TimeSpan.FromMilliseconds(500),
+                                            TimeSpan.FromMilliseconds(2000)
+                                        }, (exception, timeSpan, retryCount, context) =>
+                                        {
+                                            Console.WriteLine($"Encountered sending webhook." + 
+                                            $" Retry count: {retryCount}, {timeSpan}: {exception.Message} {exception.InnerException?.Message}");
+                                        });
+
+                                    var webhook = await blockRetryPolicy.ExecuteAsync<HttpResponseMessage>(
+                                            () => httpClient.PostAsync(webhookUrl, content)
+                                        );
                                 }
                             }
                         }

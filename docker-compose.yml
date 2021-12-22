@@ -3,7 +3,7 @@ services:
   test_net_graffle_flow_event_processor:
     build:
       context: ./Graffle.FlowEventProcessor
-      dockerfile: ./Dockerfile.compose
+      dockerfile: ./Dockerfile.development
     environment:
       - ASPNETCORE_ENVIRONMENT=local
       - FlowNode=TestNet
@@ -18,7 +18,7 @@ services:
   main_net_graffle_flow_event_processor:
     build:
       context: ./Graffle.FlowEventProcessor
-      dockerfile: ./Dockerfile.compose
+      dockerfile: ./Dockerfile.development
     environment:
       - ASPNETCORE_ENVIRONMENT=local
       - FlowNode=MainNet

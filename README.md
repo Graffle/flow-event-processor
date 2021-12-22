@@ -35,11 +35,11 @@ VERBOSE=true
 
 Open a terminal window in the root of your repository and run one of the following:
 ```
- docker-compose --env-file .\.env.local build test_net_graffle_flow_event_processor
+ docker-compose build test_net_graffle_flow_event_processor
  docker-compose --env-file .\.env.local up test_net_graffle_flow_event_processor
 ```
 ```
- docker-compose --env-file .\.env.local build main_net_graffle_flow_event_processor
+ docker-compose build main_net_graffle_flow_event_processor
  docker-compose --env-file .\.env.local up main_net_graffle_flow_event_processor
 ```
 for test net or main net event processing.
@@ -53,11 +53,11 @@ docker build -t localdev -f .\Dockerfile.development .
 ```
 and then
 ```
-docker run -e "EventId=<your event Id here>" -e "WebhookUrl=<your webhook url here>" localdev
+docker run -e "EventId=<your event Id here>" -e "WebhookUrl=<your webhook url here>" -e "FlowNode=MainNet" localdev
 ```
 or add Verbose=True to log when events are sent to your webhook url.
 ```
-docker run -e "EventId=<your event Id here>" -e "WebhookUrl=<your webhook url here>" -e "Verbose=True" localdev
+docker run -e "EventId=<your event Id here>" -e "WebhookUrl=<your webhook url here>" -e "Verbose=True" -e "FlowNode=MainNet" localdev
 ```
 You can also run against TestNet by running:
 ```
