@@ -63,3 +63,9 @@ You can also run against TestNet by running:
 ```
 docker run -e "EventId=<your event Id here>" -e "WebhookUrl=<your webhook url here>" -e "FlowNode=TestNet" -e "Verbose=True" localdev
 ```
+
+<a href="https://github.com/Graffle/flow-event-processor/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Graffle/flow-event-processor" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
