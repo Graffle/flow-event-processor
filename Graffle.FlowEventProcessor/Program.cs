@@ -37,6 +37,7 @@ namespace Graffle.FlowEventProcessor
             var webhookUrl = config.GetValue<string>("WebhookUrl");
             var eventId = config.GetValue<string>("EventId");
             var verbose = config.GetValue<bool?>("Verbose") ?? false;
+            var hmacToken = config.GetValue<string>("HMACToken");
 
             if (string.IsNullOrWhiteSpace(nodeName) || (nodeName != "MainNet" && nodeName != "TestNet"))
             {
@@ -58,6 +59,11 @@ namespace Graffle.FlowEventProcessor
                 throw new Exception("Specify MaximumBlockScanRange environment variable between 1 and 250.");
             }
 
+            if (string.IsNullOrEmpty(hmacToken) || !TryParseBase64(hmacToken, out byte[] hmacBytes))
+            {
+                throw new Exception("Specify HMACToken environment variable. It must be a valid base64 string");
+            }
+
             var maximumBlockScanRange = (ulong)maximumBlockScanRangeEnvVariable.Value;
 
             Console.WriteLine($"Target Node:      {nodeName}");
@@ -70,7 +76,11 @@ namespace Graffle.FlowEventProcessor
             var flowClientFactory = new FlowClientFactory(nodeName);
             var flowClient = flowClientFactory.CreateFlowClient();
             Console.WriteLine($"Setup Flow Client Complete");
-            var httpClient = new HttpClient();
+
+            var hmacHandler = new HMACDelegatingHandler(hmacBytes);
+            var httpClient = new HttpClient(hmacHandler);
+            httpClient.DefaultRequestHeaders.Add("x-graffle-company-id", Guid.Empty.ToString());
+            httpClient.DefaultRequestHeaders.Add("x-graffle-project-id", Guid.Empty.ToString());
 
             Console.WriteLine($"Begin Indexing...");
             ulong lastBlockHeight = 0;
@@ -195,6 +205,15 @@ namespace Graffle.FlowEventProcessor
                     Console.WriteLine(ex.InnerException?.Message ?? ex.Message);
                 }
             } while (true);
+        }
+
+        private static bool TryParseBase64(string str, out byte[] base64Bytes)
+        {
+            Span<byte> bytes = new Span<byte>(new byte[str.Length]);
+            var res = Convert.TryFromBase64String(str, bytes, out _);
+
+            base64Bytes = bytes.ToArray();
+            return res;
         }
     }
 }
