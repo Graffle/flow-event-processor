@@ -154,9 +154,9 @@ namespace Graffle.FlowEventProcessor
                                     BlockEventData = @event.EventComposite.Data,
                                     BlockHeight = blockHeightGrouping.Key,
                                     EventDate = @event.BlockTimestamp,
-                                    FlowBlockId = @event.BlockIdHash,
+                                    FlowBlockId = @event.BlockId,
                                     FlowEventId = eventId,
-                                    FlowTransactionId = @event.TransactionId.ToHash()
+                                    FlowTransactionId = @event.TransactionId
                                 };
 
                                 //Send webhook
