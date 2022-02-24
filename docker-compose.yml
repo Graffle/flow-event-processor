@@ -11,6 +11,7 @@ services:
       - WebhookUrl=${WEBHOOKURL}
       - EventId=${EVENTID}
       - Verbose=${VERBOSE}
+      - HMACToken=${HMACTOKEN}
     image: 'graffle/flow_event_processor:dev'
     volumes:
       - ./Graffle.FlowEventProcessor/bin/Debug/net5.0:/app
@@ -26,6 +27,7 @@ services:
       - WebhookUrl=${WEBHOOKURL}
       - EventId=${EVENTID}
       - Verbose=${VERBOSE}
+      - HMACToken=${HMACTOKEN}
     image: 'graffle/flow_event_processor:dev'
     volumes:
       - ./Graffle.FlowEventProcessor/bin/Debug/net5.0:/app
