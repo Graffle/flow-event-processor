@@ -71,6 +71,7 @@ namespace Graffle.FlowEventProcessor
             Console.WriteLine($"Webhook Url:      {webhookUrl}");
             Console.WriteLine($"Event Id:         {eventId}");
             Console.WriteLine($"Verbose:          {verbose}");
+            Console.WriteLine($"HMAC Token:       {hmacToken}");
 
             Console.WriteLine($"Setup Flow Client");
             var flowClientFactory = new FlowClientFactory(nodeName);
