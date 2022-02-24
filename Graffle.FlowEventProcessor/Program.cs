@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Graffle.FlowEventProcessor.Models;
 using Graffle.FlowSdk;
 using Graffle.FlowSdk.Services;
 using Graffle.FlowSdk.Services.Models;
 using Microsoft.Extensions.Configuration;
-using Graffle.FlowEventProcessor.Models;
 using Polly;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Graffle.FlowEventProcessor
 {
@@ -22,7 +22,7 @@ namespace Graffle.FlowEventProcessor
             //Get the settings
             var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "local";
             Console.WriteLine($"Current environment: {environmentName}");
-            
+
             var config = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", true)
@@ -38,19 +38,23 @@ namespace Graffle.FlowEventProcessor
             var eventId = config.GetValue<string>("EventId");
             var verbose = config.GetValue<bool?>("Verbose") ?? false;
 
-            if(string.IsNullOrWhiteSpace(nodeName) || (nodeName != "MainNet" && nodeName != "TestNet")) {
+            if (string.IsNullOrWhiteSpace(nodeName) || (nodeName != "MainNet" && nodeName != "TestNet"))
+            {
                 throw new Exception("Specify FlowNode environment variable of either MainNet or TestNet.");
             }
 
-            if(string.IsNullOrWhiteSpace(webhookUrl)) {
+            if (string.IsNullOrWhiteSpace(webhookUrl))
+            {
                 throw new Exception("Specify WebhookUrl environment variable.");
             }
 
-            if(string.IsNullOrWhiteSpace(eventId)) {
+            if (string.IsNullOrWhiteSpace(eventId))
+            {
                 throw new Exception("Specify EventId environment variable.");
             }
-            
-            if(!maximumBlockScanRangeEnvVariable.HasValue || maximumBlockScanRangeEnvVariable <= 0 || maximumBlockScanRangeEnvVariable > 250){
+
+            if (!maximumBlockScanRangeEnvVariable.HasValue || maximumBlockScanRangeEnvVariable <= 0 || maximumBlockScanRangeEnvVariable > 250)
+            {
                 throw new Exception("Specify MaximumBlockScanRange environment variable between 1 and 250.");
             }
 
@@ -85,7 +89,7 @@ namespace Graffle.FlowEventProcessor
                             TimeSpan.FromMilliseconds(2000)
                         }, (exception, timeSpan, retryCount, context) =>
                         {
-                            Console.WriteLine($"Encountered exception getting latest block." + 
+                            Console.WriteLine($"Encountered exception getting latest block." +
                             $" Retry count: {retryCount}, {timeSpan}: {exception.Message} {exception.InnerException?.Message}");
                         });
 
@@ -127,7 +131,7 @@ namespace Graffle.FlowEventProcessor
                                 TimeSpan.FromMilliseconds(2000)
                             }, (exception, timeSpan, retryCount, context) =>
                             {
-                                Console.WriteLine($"Encountered exception getting events for block." + 
+                                Console.WriteLine($"Encountered exception getting events for block." +
                                 $" Retry count: {retryCount}, {timeSpan}: {exception.Message} {exception.InnerException?.Message}");
                             });
 
@@ -140,7 +144,7 @@ namespace Graffle.FlowEventProcessor
 
                         Console.WriteLine($" {DateTimeOffset.UtcNow} - Found {totalEventsFound} events across {blocksScanned} blocks.");
 
-                        foreach(var blockHeightGrouping in eventsResponse) 
+                        foreach (var blockHeightGrouping in eventsResponse)
                         {
                             foreach (var @event in blockHeightGrouping.Value)
                             {
@@ -157,8 +161,10 @@ namespace Graffle.FlowEventProcessor
 
                                 //Send webhook
                                 var jsonMesage = System.Text.Json.JsonSerializer.Serialize(flowEvent);
-                                using (var content = new StringContent(jsonMesage)) {
-                                    if(verbose) {
+                                using (var content = new StringContent(jsonMesage))
+                                {
+                                    if (verbose)
+                                    {
                                         Console.WriteLine($"Posting event to {webhookUrl}: {Environment.NewLine}     {jsonMesage}");
                                     }
 
@@ -171,7 +177,7 @@ namespace Graffle.FlowEventProcessor
                                             TimeSpan.FromMilliseconds(2000)
                                         }, (exception, timeSpan, retryCount, context) =>
                                         {
-                                            Console.WriteLine($"Encountered sending webhook." + 
+                                            Console.WriteLine($"Encountered sending webhook." +
                                             $" Retry count: {retryCount}, {timeSpan}: {exception.Message} {exception.InnerException?.Message}");
                                         });
 
