@@ -44,9 +44,8 @@ namespace Graffle.FlowEventProcessor
             if (request.Content != null)
             {
                 // Hashing the request body, so any change in request body will result a different hash
-                var a = await request.Content.ReadAsStringAsync();
                 byte[] content = await request.Content.ReadAsByteArrayAsync();
-                MD5 md5 = MD5.Create();
+                using MD5 md5 = MD5.Create();
                 byte[] requestContentHash = md5.ComputeHash(content);
                 requestContentBase64String = Convert.ToBase64String(requestContentHash);
             }
