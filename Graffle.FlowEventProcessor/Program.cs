@@ -37,7 +37,7 @@ namespace Graffle.FlowEventProcessor
             var webhookUrl = config.GetValue<string>("WebhookUrl");
             var eventId = config.GetValue<string>("EventId");
             var verbose = config.GetValue<bool?>("Verbose") ?? false;
-            var hmacToken = config.GetValue<string>("HMACToken");
+            var hmacToken = config.GetValue<string>("HMACToken") ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(nodeName) || (nodeName != "MainNet" && nodeName != "TestNet"))
             {
@@ -59,9 +59,10 @@ namespace Graffle.FlowEventProcessor
                 throw new Exception("Specify MaximumBlockScanRange environment variable between 1 and 250.");
             }
 
-            if (string.IsNullOrEmpty(hmacToken) || !TryParseBase64(hmacToken, out byte[] hmacBytes))
+            if (!string.IsNullOrWhiteSpace(hmacToken) && !TryParseBase64(hmacToken, out _))
             {
-                throw new Exception("Specify HMACToken environment variable. It must be a valid base64 string");
+                //if hmac token was specified verify it's valid base64
+                throw new Exception("Specified HMAC Token is not a valid Base64 string.");
             }
 
             var maximumBlockScanRange = (ulong)maximumBlockScanRangeEnvVariable.Value;
@@ -78,7 +79,7 @@ namespace Graffle.FlowEventProcessor
             var flowClient = flowClientFactory.CreateFlowClient();
             Console.WriteLine($"Setup Flow Client Complete");
 
-            var hmacHandler = new HMACDelegatingHandler(hmacBytes);
+            var hmacHandler = new HMACDelegatingHandler(hmacToken);
             var httpClient = new HttpClient(hmacHandler);
             httpClient.DefaultRequestHeaders.Add("x-graffle-company-id", Guid.Empty.ToString());
             httpClient.DefaultRequestHeaders.Add("x-graffle-project-id", Guid.Empty.ToString());

@@ -12,16 +12,28 @@ namespace Graffle.FlowEventProcessor
 {
     public class HMACDelegatingHandler : DelegatingHandler
     {
-        private readonly byte[] hmacToken;
+        private readonly string hmacToken;
+        private readonly byte[] hmacBytes;
 
-        public HMACDelegatingHandler(byte[] hmacBytes)
+        public HMACDelegatingHandler(string hmac)
         {
             InnerHandler = new HttpClientHandler();
-            hmacToken = hmacBytes;
+            hmacToken = hmac;
+
+            if (!string.IsNullOrWhiteSpace(hmacToken))
+            {
+                hmacBytes = Convert.FromBase64String(hmacToken);
+            }
         }
 
         protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (string.IsNullOrWhiteSpace(hmacToken))
+            {
+                //no hmac token
+                return await base.SendAsync(request, cancellationToken);
+            }
+
             //get the company and project ids from headers set in EventWebHooks
             //using headers instead of extra method parameters because we need to override this method
             var companyId = Guid.Parse(request.Headers.GetValues("x-graffle-company-id").First());
@@ -53,7 +65,7 @@ namespace Graffle.FlowEventProcessor
             //companyId, request Http Method, request Uri, request TimeStamp, nonce, request Content Base64 String
             string signatureRawData = String.Format("{0}{1}{2}{3}{4}{5}", companyId, requestHttpMethod, requestUri, requestTimeStamp, nonce, requestContentBase64String);
             //Converting the HMAC token into byte array
-            var secretKeyByteArray = hmacToken;
+            var secretKeyByteArray = hmacBytes;
             //Converting the signatureRawData into byte array
             byte[] signature = Encoding.UTF8.GetBytes(signatureRawData);
             //Generate the hmac signature and set it in the Authorization header
