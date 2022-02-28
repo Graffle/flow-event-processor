@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Graffle.FlowEventProcessor.Models;
 using Graffle.FlowSdk;
 using Graffle.FlowSdk.Services;
 using Graffle.FlowSdk.Services.Models;
 using Microsoft.Extensions.Configuration;
-using Graffle.FlowEventProcessor.Models;
 using Polly;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Graffle.FlowEventProcessor
 {
@@ -22,7 +22,7 @@ namespace Graffle.FlowEventProcessor
             //Get the settings
             var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "local";
             Console.WriteLine($"Current environment: {environmentName}");
-            
+
             var config = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", true)
@@ -37,21 +37,32 @@ namespace Graffle.FlowEventProcessor
             var webhookUrl = config.GetValue<string>("WebhookUrl");
             var eventId = config.GetValue<string>("EventId");
             var verbose = config.GetValue<bool?>("Verbose") ?? false;
+            var hmacToken = config.GetValue<string>("HMACToken") ?? string.Empty;
 
-            if(string.IsNullOrWhiteSpace(nodeName) || (nodeName != "MainNet" && nodeName != "TestNet")) {
+            if (string.IsNullOrWhiteSpace(nodeName) || (nodeName != "MainNet" && nodeName != "TestNet"))
+            {
                 throw new Exception("Specify FlowNode environment variable of either MainNet or TestNet.");
             }
 
-            if(string.IsNullOrWhiteSpace(webhookUrl)) {
+            if (string.IsNullOrWhiteSpace(webhookUrl))
+            {
                 throw new Exception("Specify WebhookUrl environment variable.");
             }
 
-            if(string.IsNullOrWhiteSpace(eventId)) {
+            if (string.IsNullOrWhiteSpace(eventId))
+            {
                 throw new Exception("Specify EventId environment variable.");
             }
-            
-            if(!maximumBlockScanRangeEnvVariable.HasValue || maximumBlockScanRangeEnvVariable <= 0 || maximumBlockScanRangeEnvVariable > 250){
+
+            if (!maximumBlockScanRangeEnvVariable.HasValue || maximumBlockScanRangeEnvVariable <= 0 || maximumBlockScanRangeEnvVariable > 250)
+            {
                 throw new Exception("Specify MaximumBlockScanRange environment variable between 1 and 250.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(hmacToken) && !TryParseBase64(hmacToken, out _))
+            {
+                //if hmac token was specified verify it's valid base64
+                throw new Exception("Specified HMAC Token is not a valid Base64 string.");
             }
 
             var maximumBlockScanRange = (ulong)maximumBlockScanRangeEnvVariable.Value;
@@ -61,12 +72,17 @@ namespace Graffle.FlowEventProcessor
             Console.WriteLine($"Webhook Url:      {webhookUrl}");
             Console.WriteLine($"Event Id:         {eventId}");
             Console.WriteLine($"Verbose:          {verbose}");
+            Console.WriteLine($"HMAC Token:       {hmacToken}");
 
             Console.WriteLine($"Setup Flow Client");
             var flowClientFactory = new FlowClientFactory(nodeName);
             var flowClient = flowClientFactory.CreateFlowClient();
             Console.WriteLine($"Setup Flow Client Complete");
-            var httpClient = new HttpClient();
+
+            var hmacHandler = new HMACDelegatingHandler(hmacToken);
+            var httpClient = new HttpClient(hmacHandler);
+            httpClient.DefaultRequestHeaders.Add("x-graffle-company-id", Guid.Empty.ToString());
+            httpClient.DefaultRequestHeaders.Add("x-graffle-project-id", Guid.Empty.ToString());
 
             Console.WriteLine($"Begin Indexing...");
             ulong lastBlockHeight = 0;
@@ -85,7 +101,7 @@ namespace Graffle.FlowEventProcessor
                             TimeSpan.FromMilliseconds(2000)
                         }, (exception, timeSpan, retryCount, context) =>
                         {
-                            Console.WriteLine($"Encountered exception getting latest block." + 
+                            Console.WriteLine($"Encountered exception getting latest block." +
                             $" Retry count: {retryCount}, {timeSpan}: {exception.Message} {exception.InnerException?.Message}");
                         });
 
@@ -127,7 +143,7 @@ namespace Graffle.FlowEventProcessor
                                 TimeSpan.FromMilliseconds(2000)
                             }, (exception, timeSpan, retryCount, context) =>
                             {
-                                Console.WriteLine($"Encountered exception getting events for block." + 
+                                Console.WriteLine($"Encountered exception getting events for block." +
                                 $" Retry count: {retryCount}, {timeSpan}: {exception.Message} {exception.InnerException?.Message}");
                             });
 
@@ -140,7 +156,7 @@ namespace Graffle.FlowEventProcessor
 
                         Console.WriteLine($" {DateTimeOffset.UtcNow} - Found {totalEventsFound} events across {blocksScanned} blocks.");
 
-                        foreach(var blockHeightGrouping in eventsResponse) 
+                        foreach (var blockHeightGrouping in eventsResponse)
                         {
                             foreach (var @event in blockHeightGrouping.Value)
                             {
@@ -150,15 +166,17 @@ namespace Graffle.FlowEventProcessor
                                     BlockEventData = @event.EventComposite.Data,
                                     BlockHeight = blockHeightGrouping.Key,
                                     EventDate = @event.BlockTimestamp,
-                                    FlowBlockId = @event.BlockIdHash,
+                                    FlowBlockId = @event.BlockId,
                                     FlowEventId = eventId,
-                                    FlowTransactionId = @event.TransactionId.ToHash()
+                                    FlowTransactionId = @event.TransactionId
                                 };
 
                                 //Send webhook
                                 var jsonMesage = System.Text.Json.JsonSerializer.Serialize(flowEvent);
-                                using (var content = new StringContent(jsonMesage)) {
-                                    if(verbose) {
+                                using (var content = new StringContent(jsonMesage))
+                                {
+                                    if (verbose)
+                                    {
                                         Console.WriteLine($"Posting event to {webhookUrl}: {Environment.NewLine}     {jsonMesage}");
                                     }
 
@@ -171,7 +189,7 @@ namespace Graffle.FlowEventProcessor
                                             TimeSpan.FromMilliseconds(2000)
                                         }, (exception, timeSpan, retryCount, context) =>
                                         {
-                                            Console.WriteLine($"Encountered sending webhook." + 
+                                            Console.WriteLine($"Encountered sending webhook." +
                                             $" Retry count: {retryCount}, {timeSpan}: {exception.Message} {exception.InnerException?.Message}");
                                         });
 
@@ -189,6 +207,15 @@ namespace Graffle.FlowEventProcessor
                     Console.WriteLine(ex.InnerException?.Message ?? ex.Message);
                 }
             } while (true);
+        }
+
+        private static bool TryParseBase64(string str, out byte[] base64Bytes)
+        {
+            Span<byte> bytes = new Span<byte>(new byte[str.Length]);
+            var res = Convert.TryFromBase64String(str, bytes, out _);
+
+            base64Bytes = bytes.ToArray();
+            return res;
         }
     }
 }

@@ -18,7 +18,8 @@ Create an appsettings.local.json file in the Graffle.FlowEventProcessor folder:
     "MaximumBlockScanRange": 200,
     "WebhookUrl": "https://<your url>",
     "EventId": "A.c1e4f4f4c4257510.Market.MomentPurchased",
-    "Verbose": "true"
+    "Verbose": "true",
+    "HMACToken": "[base64 string]"
 }
 ```
 
@@ -31,6 +32,7 @@ Create a .env.local file in the root of your repository, next to docker-compose.
 WEBHOOKURL=https://<your url>
 EVENTID=A.c1e4f4f4c4257510.Market.MomentPurchased
 VERBOSE=true
+HMACTOKEN=[base64 string]
 ```
 
 Open a terminal window in the root of your repository and run one of the following:
@@ -63,6 +65,16 @@ You can also run against TestNet by running:
 ```
 docker run -e "EventId=<your event Id here>" -e "WebhookUrl=<your webhook url here>" -e "FlowNode=TestNet" -e "Verbose=True" localdev
 ```
+
+### HMAC
+This solution always adds the following headers to the request
+
+```
+x-graffle-company-id: 00000000-0000-0000-0000-000000000000
+x-graffle-project-id: 00000000-0000-0000-0000-000000000000
+```
+
+For decoding the HMAC token Company Id is *always* an empty GUID
 
 <a href="https://github.com/Graffle/flow-event-processor/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Graffle/flow-event-processor" />
