@@ -65,9 +65,13 @@ You can also run against TestNet by running:
 ```
 docker run -e "EventId=<your event Id here>" -e "WebhookUrl=<your webhook url here>" -e "FlowNode=TestNet" -e "Verbose=True" localdev
 ```
+Add an HMAC token to the http requests:
+```
+docker run -e "EventId=<your event Id here>" -e "WebhookUrl=<your webhook url here>" -e "FlowNode=TestNet" -e "HMACToken=<base64 string>" localdev
+```
 
 ### HMAC
-This solution always adds the following headers to the request
+This application always adds the following headers to the request
 
 ```
 x-graffle-company-id: 00000000-0000-0000-0000-000000000000
